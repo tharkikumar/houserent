@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mullick Villa</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .app-box { max-width: 500px; margin: 20px auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden; }
+        .header { background: #2c3e50; color: white; padding: 25px; text-align: center; }
+        .sub-text { font-size: 11px; letter-spacing: 1px; opacity: 0.8; text-transform: uppercase; }
+        .hidden { display: none !important; }
+        
+        /* PRINTING STYLES */
+        @media print {
+            body * { visibility: hidden; }
+            #invoice-area, #invoice-area *, #print-area, #print-area * { visibility: visible; }
+            #invoice-area, #print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 40px; background: white; color: black; }
+            .no-print { display: none; }
+            .letterhead { text-align: center; border-bottom: 2px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
+            .invoice-qr { text-align: center; margin-top: 30px; border-top: 1px dashed #999; padding-top: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-box">
+    
+    <div id="view-login">
+        <div class="header">
+            <h3>MULLICK VILLA</h3>
+            <div class="sub-text">House No-460, Block E, Shri Ram Colony</div>
+        </div>
+        <div class="p-4">
+            <h5 class="text-center text-muted mb-4">Welcome Home</h5>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary btn-lg" onclick="showLogin('tenant')">I am a Tenant</button>
+                <button class="btn btn-outline-secondary" onclick="showLogin('admin')">Landlord Login</button>
+            </div>
+            
+            <div id="form-tenant" class="hidden mt-3 p-3 bg-light rounded">
+                <label>Select Unit</label>
+                <select class="form-select mb-2" id="t-unit"><script>for(let i=1; i<=14; i++) document.write(`<option value="Unit ${i}">Unit ${i}</option>`);</script></select>
+                <input type="tel" class="form-control mb-2" id="t-pin" placeholder="Enter PIN">
+                <button class="btn btn-success w-100" onclick="loginTenant()">Access Dashboard</button>
+            </div>
+            <div id="form-admin" class="hidden mt-3 p-3 bg-light rounded">
+                <input type="password" class="form-control mb-2" id="a-pass" placeholder="Admin Password">
+                <button class="btn btn-dark w-100" onclick="loginAdmin()">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-admin" class="hidden">
+        <div class="header" style="background: #34495e;">
+            <h4>Mamta Mullick</h4>
+            <div class="sub-text">Landlord Console</div>
+            <div class="mt-3 d-flex justify-content-center gap-1 flex-wrap">
+                <button class="btn btn-sm btn-light" onclick="showTab('bill')">Billing</button>
+                <button class="btn btn-sm btn-outline-light" onclick="showTab('report')">Reports</button>
+                <button class="btn btn-sm btn-outline-light" onclick="showTab('reg')">Register</button>
+                <button class="btn btn-sm btn-outline-light" onclick="showTab('settings')">Settings</button>
+                <button class="btn btn-sm btn-danger" onclick="location.reload()">Exit</button>
+            </div>
+        </div>
+        
+        <div class="p-4">
+            <div id="tab-bill">
+                <div class="card p-3 mb-3 border-0 shadow-sm bg-light">
+                    <h6 class="fw-bold">1. Monthly Bill</h6>
+                    <div class="input-group mb-2">
+                        <select class="form-select" id="bill-unit"><script>for(let i=1; i<=14; i++) document.write(`<option value="Unit ${i}">Unit ${i}</option>`);</script></select>
+                        <input type="number" class="form-control" id="bill-meter" placeholder="New Meter">
+                    </div>
+                    <button class="btn btn-success w-100" onclick="generateBill(this)">Calculate & Save</button>
+                </div>
+                <div class="card p-3 mb-3 border-warning shadow-sm">
+                    <h6 class="fw-bold text-dark">2. Print Hard Copy</h6>
+                    <div class="input-group">
+                        <select class="form-select" id="print-unit"><script>for(let i=1; i<=14; i++) document.write(`<option value="Unit ${i}">Unit ${i}</option>`);</script></select>
+                        <button class="btn btn-warning" onclick="printInvoice(this)">🖨️ Print Bill</button>
+                    </div>
+                </div>
+                <div class="card p-3 border-primary shadow-sm">
+                    <h6 class="fw-bold text-primary">3. Receive Cash</h6>
+                    <select class="form-select mb-2" id="cash-unit"><script>for(let i=1; i<=14; i++) document.write(`<option value="Unit ${i}">Unit ${i}</option>`);</script></select>
+                    <div class="input-group">
+                        <span class="input-group-text">₹</span>
+                        <input type="number" class="form-control" id="cash-amt" placeholder="Amount">
+                        <button class="btn btn-primary" onclick="payCash(this)">Mark Paid</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="invoice-area" class="hidden">
+                <div class="letterhead">
+                    <h2>MULLICK VILLA</h2>
+                    <p>House No-460, Block E, Shri Ram Colony, Delhi 110090</p>
+                    <h4>RENT INVOICE</h4>
+                </div>
+                <div class="mb-4">
+                    <p><strong>Date:</strong> <span id="inv-date"></span></p>
+                    <p><strong>Tenant:</strong> <span id="inv-name"></span></p>
+                    <p><strong>Unit:</strong> <span id="inv-unit"></span></p>
+                </div>
+                <table class="table table-bordered">
+                    <tr><td>Base Rent</td><td class="text-end" id="inv-rent"></td></tr>
+                    <tr><td>Electricity Charges</td><td class="text-end" id="inv-elec"></td></tr>
+                    <tr><td>Previous Arrears/Adv</td><td class="text-end" id="inv-arr"></td></tr>
+                    <tr class="table-dark fw-bold"><td>TOTAL AMOUNT DUE</td><td class="text-end" id="inv-total"></td></tr>
+                </table>
+                <div class="invoice-qr">
+                    <p class="fw-bold">SCAN TO PAY NOW (UPI)</p>
+                    <img id="inv-qr-img" src="" style="width: 200px;">
+                    <p class="small mt-2">Payable to: Mamta Mullick</p>
+                </div>
+            </div>
+
+            <div id="tab-report" class="hidden">
+                <h5 class="mb-3">Financial Reports</h5>
+                <div class="row g-2 mb-3"><div class="col"><input type="date" class="form-control" id="rep-start"></div><div class="col"><input type="date" class="form-control" id="rep-end"></div></div>
+                <button class="btn btn-dark w-100 mb-4" onclick="getReport(this)">Generate Report</button>
+                <div id="print-area" class="hidden">
+                    <div class="letterhead"><h2>MULLICK VILLA</h2><p>Landlord: Mamta Mullick</p></div>
+                    <h4 class="text-center mt-3">Income Statement</h4>
+                    <p class="text-center" id="rep-dates"></p>
+                    <table class="table table-bordered mt-3"><thead class="table-dark"><tr><th>Date</th><th>Unit</th><th>Via</th><th>Amt</th></tr></thead><tbody id="rep-body"></tbody><tfoot class="table-dark"><tr><td colspan="3">TOTAL</td><td id="rep-total"></td></tr></tfoot></table>
+                    <div class="text-center mt-5 no-print"><button class="btn btn-outline-primary" onclick="window.print()">🖨️ Print Report</button></div>
+                </div>
+            </div>
+
+            <div id="tab-reg" class="hidden">
+                <h5>New Tenant</h5>
+                <input type="text" class="form-control mb-2" id="reg-name" placeholder="Name">
+                <input type="tel" class="form-control mb-2" id="reg-phone" placeholder="Phone">
+                <select class="form-select mb-2" id="reg-unit"><script>for(let i=1; i<=14; i++) document.write(`<option value="Unit ${i}">Unit ${i}</option>`);</script></select>
+                <div class="row g-2 mb-2"><div class="col"><input type="number" class="form-control" id="reg-rent" placeholder="Rent"></div><div class="col"><select class="form-select" id="reg-type"><option value="Advance">Prepaid</option><option value="Postpaid">Postpaid</option></select></div></div>
+                <div class="row g-2 mb-3"><div class="col"><input type="number" class="form-control" id="reg-adv" placeholder="Security"></div><div class="col"><input type="number" class="form-control" id="reg-meter" placeholder="Meter"></div></div>
+                <button class="btn btn-primary w-100" onclick="registerTenant(this)">Register</button>
+            </div>
+            <div id="tab-settings" class="hidden">
+                 <h5>Settings</h5>
+                 <div class="card p-3 mb-3 border-success"><label class="fw-bold text-success">UPI ID</label><div class="input-group"><input type="text" class="form-control" id="set-upi" placeholder="e.g. mamta@okicici"><button class="btn btn-success" onclick="updateSettings('upi', this)">Update</button></div></div>
+                 <div class="card p-3"><label class="fw-bold">Elec Rate</label><div class="input-group"><input type="number" class="form-control" id="set-rate" placeholder="10"><button class="btn btn-secondary" onclick="updateSettings('rate', this)">Update</button></div></div>
+            </div>
+            <div id="msg-box" class="alert mt-3 hidden"></div>
+        </div>
+    </div>
+
+    <div id="view-tenant" class="hidden">
+        <div class="header"><h4>MULLICK VILLA</h4><div class="sub-text">TENANT PORTAL</div></div>
+        <div class="p-4">
+            <h5 id="disp-name">Welcome</h5>
+            <div class="card shadow-sm mb-3"><div class="card-body"><div class="d-flex justify-content-between"><span>Base Rent</span><span class="fw-bold" id="disp-rent"></span></div><div class="d-flex justify-content-between"><span>Electricity</span><span class="fw-bold" id="disp-elec"></span></div><div class="d-flex justify-content-between text-muted"><span>Pending</span><span id="disp-arr"></span></div><hr><div class="d-flex justify-content-between"><span class="h5">TOTAL</span><span class="h3 text-danger" id="disp-total"></span></div></div></div>
+            <button class="btn btn-success w-100 mb-2" onclick="payApp()">Pay UPI App</button>
+            <button class="btn btn-outline-dark w-100" onclick="showQR()">Show QR</button>
+            <div id="qr-box" class="text-center mt-3 hidden p-3 border rounded"><img id="qr-img" src="" style="width:150px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "PASTE_YOUR_NEW_URL_HERE"; // <--- PASTE HERE
+    let LANDLORD_UPI = "";
+
+    function showLogin(t) { document.getElementById('form-tenant').classList.toggle('hidden',t!=='tenant'); document.getElementById('form-admin').classList.toggle('hidden',t!=='admin'); }
+    function showTab(id) { ['bill','report','reg','settings'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden')); document.getElementById('tab-'+id).classList.remove('hidden'); }
+    function msg(txt,err=false) { const b=document.getElementById('msg-box'); b.className=`alert mt-3 alert-${err?'danger':'success'}`; b.innerText=txt; b.classList.remove('hidden'); }
+    function loginAdmin() { if(document.getElementById('a-pass').value==="admin") { document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-admin').classList.remove('hidden'); } else alert("Wrong Password"); }
+
+    async function loginTenant() { const u=document.getElementById('t-unit').value; const p=document.getElementById('t-pin').value; const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:"GET_TENANT",unit:u,pin:p})}); const d=await res.json(); if(d.status==="success"){ document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-tenant').classList.remove('hidden'); document.getElementById('disp-name').innerText=d.name; document.getElementById('disp-rent').innerText="₹"+d.rent; document.getElementById('disp-elec').innerText="₹"+d.elec; document.getElementById('disp-arr').innerText="₹"+d.arrears; document.getElementById('disp-total').innerText="₹"+d.total; LANDLORD_UPI=d.upi; } else alert("Invalid PIN"); }
+    
+    async function printInvoice(btn) {
+        btn.innerText = "Processing...";
+        const unit = document.getElementById('print-unit').value;
+        const pass = document.getElementById('a-pass').value;
+        const res = await fetch(API_URL, {method:'POST', body:JSON.stringify({action:"GET_BILL_ADMIN", password:pass, unit:unit})});
+        const d = await res.json();
+        btn.innerText = "🖨️ Print Bill";
+        if(d.status === "success") {
+            document.getElementById('invoice-area').classList.remove('hidden');
+            document.getElementById('inv-date').innerText = d.date; document.getElementById('inv-name').innerText = d.name; document.getElementById('inv-unit').innerText = unit; document.getElementById('inv-rent').innerText = "₹"+d.rent; document.getElementById('inv-elec').innerText = "₹"+d.elec; document.getElementById('inv-arr').innerText = "₹"+d.arrears; document.getElementById('inv-total').innerText = "₹"+d.total;
+            document.getElementById('inv-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(`upi://pay?pa=${d.upi}&pn=MamtaMullick&am=${d.total}&tn=Rent`)}`;
+            setTimeout(() => { window.print(); document.getElementById('invoice-area').classList.add('hidden'); }, 1000);
+        } else msg(d.message, true);
+    }
+
+    async function generateBill(btn) { btn.innerText="..."; const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:"GENERATE_BILL", password:document.getElementById('a-pass').value, unit:document.getElementById('bill-unit').value, newMeter:document.getElementById('bill-meter').value})}); const d=await res.json(); btn.innerText="Calculate"; d.status==="success"?msg(`Saved! Total: ₹${d.total}`):msg(d.message,true); }
+    async function payCash(btn) { btn.innerText="..."; const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:"PAY_CASH", password:document.getElementById('a-pass').value, unit:document.getElementById('cash-unit').value, amount:document.getElementById('cash-amt').value})}); const d=await res.json(); btn.innerText="Paid"; d.status==="success"?msg("Cash Recorded"):msg(d.message,true); }
+    async function registerTenant(btn) { btn.innerText="..."; const body={action:"REGISTER_TENANT", password:document.getElementById('a-pass').value, name:document.getElementById('reg-name').value, phone:document.getElementById('reg-phone').value, unit:document.getElementById('reg-unit').value, rent:document.getElementById('reg-rent').value, rentType:document.getElementById('reg-type').value, advance:document.getElementById('reg-adv').value, meter:document.getElementById('reg-meter').value, entryDate:new Date().toLocaleDateString()}; const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(body)}); const d=await res.json(); btn.innerText="Register"; d.status==="success"?msg(`PIN: ${d.pin}`):msg(d.message,true); }
+    async function updateSettings(type, btn) { btn.innerText="..."; const body={action:"UPDATE_SETTINGS", password:document.getElementById('a-pass').value}; if(type==='rate') body.newRate=document.getElementById('set-rate').value; if(type==='upi') body.newUPI=document.getElementById('set-upi').value; await fetch(API_URL,{method:'POST',body:JSON.stringify(body)}); btn.innerText="Done"; msg("Updated"); }
+    async function getReport(btn) { btn.innerText="..."; const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:"GET_REPORT", password:document.getElementById('a-pass').value, start:document.getElementById('rep-start').value, end:document.getElementById('rep-end').value})}); const d=await res.json(); btn.innerText="Get Report"; if(d.status==="success") { document.getElementById('print-area').classList.remove('hidden'); document.getElementById('rep-dates').innerText=`${document.getElementById('rep-start').value} to ${document.getElementById('rep-end').value}`; document.getElementById('rep-total').innerText="₹"+d.total; const tb=document.getElementById('rep-body'); tb.innerHTML=""; d.rows.forEach(r=>{ tb.innerHTML+=`<tr><td>${r.date}</td><td>${r.unit}</td><td>${r.method}</td><td>₹${r.amount}</td></tr>`; }); } }
+    function payApp() { window.location.href=`upi://pay?pa=${LANDLORD_UPI}&pn=MamtaMullick&am=${document.getElementById('disp-total').innerText.replace('₹','')}&tn=Rent`; }
+    function showQR() { const amt=document.getElementById('disp-total').innerText.replace('₹',''); document.getElementById('qr-img').src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${LANDLORD_UPI}&pn=MamtaMullick&am=${amt}&tn=Rent`)}`; document.getElementById('qr-box').classList.remove('hidden'); }
+</script>
+</body>
+</html>
