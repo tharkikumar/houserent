@@ -56,8 +56,8 @@
                             <select id="login-unit" class="form-select"></select>
                         </div>
                         <div class="mb-3">
-                            <label>PIN</label>
-                            <input type="password" id="login-pin" class="form-control" maxlength="4">
+                            <label>PIN (Your Unit No)</label>
+                            <input type="password" id="login-pin" class="form-control" placeholder="Enter Unit No again">
                         </div>
                         <button class="btn btn-primary w-100" onclick="tenantLogin()">Login</button>
                     </div>
@@ -329,7 +329,7 @@
 
 <script>
     // --- CONFIGURATION ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbz1lfyNQMi6QycMprjLLUwXDAGWeEQfB6_wrafLr48-QMQX8KOvNGZZDuOr3p_xPrBh/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
+    const API_URL = "https://script.google.com/macros/s/AKfycbx0c_ZmX7ox_pkNkjHg7OhRS5X7WPzAgUFGiFJtw8wppJSk0LQw95sCzNcydadihwhI/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
     
     // --- GLOBAL STATE ---
     let metaData = {};
@@ -464,7 +464,7 @@
             entryDate: entryDate
         };
         const res = await apiCall(data);
-        alert(`${res.msg}\nAssigned PIN: ${res.pin}`);
+        alert(`${res.msg}\nLogin PIN is now set to Unit No: ${data.unit}`);
         location.reload();
     }
 
@@ -502,7 +502,7 @@
         fetchMeta(); 
     }
 
-    // --- NEW: RESET DATABASE FUNCTION ---
+    // --- RESET DATABASE FUNCTION ---
     async function resetDatabase() {
         const confirmText = prompt("WARNING: This will delete ALL tenants, ALL transactions, and reset all units to zero. \n\nType 'RESET' to confirm:");
         if (confirmText !== "RESET") {
