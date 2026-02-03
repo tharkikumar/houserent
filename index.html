@@ -8,17 +8,16 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
-        .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .navbar-brand { font-weight: bold; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; display: none; }
         
         /* Print Styles for Invoice */
         @media print {
-            body * { visibility: hidden; }
-            #invoice-area, #invoice-area * { visibility: visible; }
+            body * { visibility: hidden; } /* Hide the app interface */
+            #invoice-area, #invoice-area * { visibility: visible; } /* Show ONLY the invoice */
             #invoice-area { position: absolute; left: 0; top: 0; width: 100%; }
-            .no-print { display: none !important; }
         }
     </style>
 </head>
@@ -92,6 +91,18 @@
                     <div class="card p-3">
                         <h5>Generate Bill</h5>
                         <select id="bill-unit" class="form-select mb-2"></select>
+                        
+                        <div class="row g-1 mb-2">
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size: 0.75rem;">From Date</label>
+                                <input type="date" id="bill-start" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label mb-0" style="font-size: 0.75rem;">To Date</label>
+                                <input type="date" id="bill-end" class="form-control form-control-sm">
+                            </div>
+                        </div>
+
                         <input type="number" id="bill-new-meter" class="form-control mb-2" placeholder="New Meter Reading">
                         <button class="btn btn-success w-100" onclick="generateBill()">Calculate & Save</button>
                     </div>
@@ -128,7 +139,14 @@
                 <div class="row">
                     <div class="col-6 mb-2"><input type="text" id="reg-name" class="form-control" placeholder="Name"></div>
                     <div class="col-6 mb-2"><input type="text" id="reg-phone" class="form-control" placeholder="Phone"></div>
+                    
                     <div class="col-6 mb-2">
+                        <label class="form-label mb-0" style="font-size: 0.8rem;">Entry Date</label>
+                        <input type="date" id="reg-date" class="form-control">
+                    </div>
+
+                    <div class="col-6 mb-2">
+                        <label class="form-label mb-0" style="font-size: 0.8rem;">Select Unit</label>
                         <select id="reg-unit" class="form-select"></select>
                     </div>
                     <div class="col-6 mb-2"><input type="number" id="reg-rent" class="form-control" placeholder="Base Rent"></div>
@@ -139,7 +157,7 @@
                         </select>
                     </div>
                     <div class="col-6 mb-2"><input type="number" id="reg-sec" class="form-control" placeholder="Security Deposit"></div>
-                    <div class="col-12 mb-2"><input type="number" id="reg-meter" class="form-control" placeholder="Start Meter Reading"></div>
+                    <div class="col-6 mb-2"><input type="number" id="reg-meter" class="form-control" placeholder="Start Meter Reading"></div>
                 </div>
                 <button class="btn btn-primary mt-2" onclick="registerTenant()">Register Tenant</button>
             </div>
@@ -226,7 +244,8 @@
             <p>Name: <span id="inv-name"></span><br>Unit: <span id="inv-unit"></span></p>
         </div>
         <div class="col-6 text-end">
-            <h5>Date: <span id="inv-date"></span></h5>
+            <h5>Date of Issue: <span id="inv-date"></span></h5>
+            <p class="mb-0"><strong>Billing Period:</strong> <span id="inv-period"></span></p>
         </div>
     </div>
     <table class="table table-bordered mt-3">
@@ -251,7 +270,7 @@
 
 <script>
     // --- CONFIGURATION ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbwQydDlG9tqHpd23UEvVJDz1Go5bcZ93QJUcII3_-vGXA6htFEKSLY3Yd1D-ZFTsOPc/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbxlGasA7MRIeUyvHIix84R6ge1ieAO2oR-Wsamu96a-7psyKqB_14vWA764F7b_nA9Y/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
     
     // --- GLOBAL STATE ---
     let metaData = {};
@@ -261,9 +280,8 @@
         document.getElementById('loader').style.display = 'flex';
         try {
             await fetchMeta();
-            // Setup System silently on first load
             apiCall({ action: 'SETUP_SYSTEM' }); 
-        } catch(e) { alert("Connection Error"); }
+        } catch(e) { console.error("Connection Error", e); }
         document.getElementById('loader').style.display = 'none';
     };
 
@@ -303,7 +321,6 @@
             if(!isVacant) occupied += `<option value="${u}">${u}</option>`;
         });
 
-        // Fill all dropdowns
         document.getElementById('login-unit').innerHTML = occupied;
         document.getElementById('bill-unit').innerHTML = occupied;
         document.getElementById('print-unit').innerHTML = occupied;
@@ -311,7 +328,6 @@
         document.getElementById('vacate-unit').innerHTML = occupied;
         document.getElementById('reg-unit').innerHTML = vacants;
         
-        // Fill Settings
         document.getElementById('set-rate').value = metaData.rate;
         document.getElementById('set-upi').value = metaData.upi;
     }
@@ -362,7 +378,6 @@
         document.getElementById('t-arr').innerText = "₹" + data.arrears;
         document.getElementById('t-total').innerText = "₹" + data.total;
         
-        // QR Generation
         const upiLink = `upi://pay?pa=${data.upi}&pn=MamtaMullick&am=${data.total}&cu=INR`;
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}`;
         
@@ -371,6 +386,9 @@
     }
 
     async function registerTenant() {
+        const entryDate = document.getElementById('reg-date').value;
+        if (!entryDate) return alert("Please select an Entry Date.");
+
         const data = {
             action: 'REGISTER_TENANT',
             name: document.getElementById('reg-name').value,
@@ -379,7 +397,8 @@
             rent: document.getElementById('reg-rent').value,
             type: document.getElementById('reg-type').value,
             security: document.getElementById('reg-sec').value,
-            startMeter: document.getElementById('reg-meter').value
+            startMeter: document.getElementById('reg-meter').value,
+            entryDate: entryDate
         };
         const res = await apiCall(data);
         alert(`${res.msg}\nAssigned PIN: ${res.pin}`);
@@ -389,11 +408,20 @@
     async function generateBill() {
         const unit = document.getElementById('bill-unit').value;
         const meter = document.getElementById('bill-new-meter').value;
-        if(!unit || !meter) return alert("Fill all fields");
+        const start = document.getElementById('bill-start').value;
+        const end = document.getElementById('bill-end').value;
+
+        if(!unit || !meter || !start || !end) return alert("Please fill in the Meter Reading and the Billing Dates.");
         
-        const res = await apiCall({ action: 'GENERATE_BILL', unit: unit, newMeter: meter });
+        const res = await apiCall({ 
+            action: 'GENERATE_BILL', 
+            unit: unit, 
+            newMeter: meter,
+            startDate: start,
+            endDate: end
+        });
         alert(res);
-        fetchMeta(); // Refresh data
+        fetchMeta(); 
     }
 
     async function payCash() {
@@ -442,10 +470,15 @@
         
         const data = await apiCall({ action: 'GET_BILL_ADMIN', unit: unit });
         
-        // Fill Invoice
         document.getElementById('inv-name').innerText = data.name;
         document.getElementById('inv-unit').innerText = unit;
         document.getElementById('inv-date').innerText = new Date().toLocaleDateString();
+        
+        const periodStr = data.lastStart && data.lastEnd 
+            ? `${new Date(data.lastStart).toLocaleDateString()} to ${new Date(data.lastEnd).toLocaleDateString()}` 
+            : 'N/A';
+        document.getElementById('inv-period').innerText = periodStr;
+
         document.getElementById('inv-rent').innerText = data.rent;
         document.getElementById('inv-elec').innerText = data.elec;
         document.getElementById('inv-arr').innerText = data.arrears;
@@ -455,8 +488,10 @@
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiLink)}`;
         document.getElementById('inv-qr').src = qrUrl;
 
-        // Trigger Print
+        const invoiceArea = document.getElementById('invoice-area');
+        invoiceArea.classList.remove('hidden');
         window.print();
+        invoiceArea.classList.add('hidden');
     }
 </script>
 </body>
