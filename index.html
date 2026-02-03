@@ -128,9 +128,19 @@
         <div id="tab-cash" class="dashboard-tab hidden">
             <div class="card p-4 col-md-6">
                 <h5>Receive Cash Payment</h5>
-                <select id="cash-unit" class="form-select mb-2"></select>
+                
+                <select id="cash-unit" class="form-select mb-2" onchange="loadPaymentDetails()"></select>
+                
+                <div class="alert alert-info py-2 mb-2" style="font-size: 0.85rem;">
+                    <strong>Approving For Cycle:</strong> <span id="cash-period">Select a unit...</span>
+                </div>
+
+                <label class="form-label mb-0" style="font-size: 0.8rem;">Current Due (You can edit this if they pay less/more)</label>
                 <input type="number" id="cash-amount" class="form-control mb-2" placeholder="Amount Received">
-                <button class="btn btn-success" onclick="payCash()">Record Payment</button>
+                
+                <small class="text-muted d-block mb-3">Note: Overpayment will credit their account. Underpayment will carry forward as Arrears.</small>
+                
+                <button class="btn btn-success" onclick="payCash()">Approve & Record Payment</button>
             </div>
         </div>
 
@@ -236,7 +246,6 @@
                         <button class="btn btn-warning" onclick="updateSettings()">Update Settings</button>
                     </div>
                 </div>
-                
                 <div class="col-md-6">
                     <div class="card p-4 border-danger">
                         <h5 class="text-danger">Danger Zone</h5>
@@ -249,46 +258,61 @@
     </div>
 
     <div id="tenant-dashboard" class="hidden">
-        <h2 id="t-welcome">Welcome</h2>
-        <p class="text-muted mb-0"><strong>Move-in Date:</strong> <span id="t-entry-date">N/A</span></p>
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 id="t-welcome" class="mb-0">Welcome</h2>
+            <button class="btn btn-sm btn-outline-primary" onclick="toggleLanguage()" id="lang-btn">हिंदी (Hindi)</button>
+        </div>
+
+        <p class="text-muted mb-0"><strong id="lbl-movein">Move-in Date:</strong> <span id="t-entry-date">N/A</span></p>
         
         <div class="card p-4 mt-3 border-primary" style="border-width: 2px;">
-            <h4 class="text-primary">Current Bill Status</h4>
+            <h4 class="text-primary" id="lbl-status">Current Bill Status</h4>
             <hr>
             
             <div class="alert alert-secondary py-2 mb-3" style="font-size: 0.85rem;">
-                <strong>Meter Reading:</strong> <span id="t-meter-old">0</span> (Old) to <span id="t-meter-new">0</span> (New) <br>
-                <strong>Calculation:</strong> <span id="t-units">0</span> units @ ₹<span id="t-rate">0</span>/unit
+                <strong id="lbl-meter">Meter Reading:</strong> <span id="t-meter-old">0</span> (Old) to <span id="t-meter-new">0</span> (New) <br>
+                <strong id="lbl-calc">Calculation:</strong> <span id="t-units">0</span> units @ ₹<span id="t-rate">0</span>/unit
             </div>
 
             <div class="row text-center">
                 <div class="col-3">
-                    <small class="text-muted">Base Rent</small>
+                    <small class="text-muted" id="lbl-rent">Base Rent</small>
                     <h5 id="t-rent">0</h5>
                 </div>
                 <div class="col-3">
-                    <small class="text-muted">Electricity</small>
+                    <small class="text-muted" id="lbl-elec">Electricity</small>
                     <h5 id="t-elec">0</h5>
                 </div>
                 <div class="col-3">
-                    <small class="text-muted">Arrears</small>
+                    <small class="text-muted" id="lbl-arr">Arrears</small>
                     <h5 id="t-arr">0</h5>
                 </div>
                 <div class="col-3">
-                    <small class="text-danger fw-bold">Total Due</small>
+                    <small class="text-danger fw-bold" id="lbl-total">Total Due</small>
                     <h4 class="text-danger fw-bold" id="t-total">0</h4>
                 </div>
             </div>
             
             <div class="mt-4 text-center">
-                <a id="pay-link" href="#" class="btn btn-success btn-lg px-5 mb-3">PAY NOW via UPI App</a>
+                <a id="pay-link" href="#" class="btn btn-success btn-lg px-5 mb-3"><span id="lbl-pay">PAY NOW via UPI App</span></a>
                 <br>
-                <button class="btn btn-outline-dark btn-sm" onclick="document.getElementById('qr-box').classList.remove('hidden')">Show QR Code</button>
+                <button class="btn btn-outline-dark btn-sm" onclick="document.getElementById('qr-box').classList.remove('hidden')"><span id="lbl-qr">Show QR Code</span></button>
                 
                 <div id="qr-box" class="hidden mt-3">
-                    <p>Scan to Pay:</p>
+                    <p id="lbl-scan">Scan to Pay:</p>
                     <img id="qr-img" src="" alt="QR Code" style="width: 150px;">
                 </div>
+            </div>
+        </div>
+
+        <div class="card p-4 mt-3">
+            <h4 class="text-secondary" id="lbl-hist">Payment History</h4>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mt-2" style="font-size: 0.85rem;" id="t-history-table">
+                    <thead id="hist-head"><tr><th>Date</th><th>Action</th><th>Amount (₹)</th><th>Notes</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -328,23 +352,65 @@
             <tr class="table-dark"><td><strong>TOTAL DUE</strong></td><td class="text-end"><strong id="inv-total"></strong></td></tr>
         </tbody>
     </table>
-    <div class="mt-4 row">
-        <div class="col-8">
-            <p><strong>Payment Instructions:</strong><br>Please pay via UPI or Cash immediately.<br>Keep this receipt for your records.</p>
-        </div>
-        <div class="col-4 text-center">
-            <img id="inv-qr" src="" style="width: 100px;">
-            <p><small>Scan to Pay</small></p>
+    
+    <div class="mt-4 border p-3 bg-light">
+        <div class="row">
+            <div class="col-9">
+                <h6 class="text-danger fw-bold">PAYMENT INSTRUCTIONS (IMPORTANT)</h6>
+                <p class="mb-1" style="font-size: 0.9rem;"><strong>English:</strong> Please pay via Cash or UPI. If paying by UPI, you MUST add your <strong>"Unit Number"</strong> in the UPI Comment/Notes section. After payment, send the screenshot on WhatsApp to <strong>9319222650</strong> for approval.</p>
+                <p class="mb-0" style="font-size: 0.9rem;"><strong>हिंदी:</strong> कृपया कैश या UPI द्वारा भुगतान करें। UPI से भुगतान करते समय, <strong>'Comment'</strong> में अपना कमरा नंबर (Unit No) जरूर लिखें। भुगतान के बाद, अप्रूवल के लिए स्क्रीनशॉट <strong>9319222650</strong> पर WhatsApp करें।</p>
+            </div>
+            <div class="col-3 text-center">
+                <img id="inv-qr" src="" style="width: 100px;">
+                <p class="mb-0"><small>Scan to Pay</small></p>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
     // --- CONFIGURATION ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbwLncGWzclgQtE1oc2T0ZxkP627KuXF-Z1Y66q6nRnxOKqFTKAO2jCddVZg7qh9Vggq/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
+    const API_URL = "https://script.google.com/macros/s/AKfycbw7ErVAzZun1DOfcP4mbcUVOgPdiMEcDVXfHQH2xBQ2bEfEmsOqZbo-DsQyn2Nj70jb/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
     
     // --- GLOBAL STATE ---
     let metaData = {};
+    let currentLang = 'en';
+
+    // --- LANGUAGE DICTIONARY ---
+    const dict = {
+        en: {
+            movein: "Move-in Date:", status: "Current Bill Status", meter: "Meter Reading:", 
+            calc: "Calculation:", rent: "Base Rent", elec: "Electricity", arr: "Arrears", 
+            total: "Total Due", pay: "PAY NOW via UPI App", qr: "Show QR Code", scan: "Scan to Pay:", 
+            hist: "Payment History", btn: "हिंदी (Hindi)", 
+            hhead: "<tr><th>Date</th><th>Action</th><th>Amount (₹)</th><th>Notes</th></tr>"
+        },
+        hi: {
+            movein: "प्रवेश तिथि:", status: "बिल की स्थिति", meter: "मीटर रीडिंग:", 
+            calc: "गणना:", rent: "मूल किराया", elec: "बिजली बिल", arr: "बकाया राशि", 
+            total: "कुल देय राशि", pay: "UPI ऐप से भुगतान करें", qr: "QR कोड दिखाएं", scan: "भुगतान के लिए स्कैन करें:", 
+            hist: "भुगतान इतिहास", btn: "English",
+            hhead: "<tr><th>तारीख</th><th>विवरण</th><th>राशि (₹)</th><th>नोट्स</th></tr>"
+        }
+    };
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'en' ? 'hi' : 'en';
+        document.getElementById('lbl-movein').innerText = dict[currentLang].movein;
+        document.getElementById('lbl-status').innerText = dict[currentLang].status;
+        document.getElementById('lbl-meter').innerText = dict[currentLang].meter;
+        document.getElementById('lbl-calc').innerText = dict[currentLang].calc;
+        document.getElementById('lbl-rent').innerText = dict[currentLang].rent;
+        document.getElementById('lbl-elec').innerText = dict[currentLang].elec;
+        document.getElementById('lbl-arr').innerText = dict[currentLang].arr;
+        document.getElementById('lbl-total').innerText = dict[currentLang].total;
+        document.getElementById('lbl-pay').innerText = dict[currentLang].pay;
+        document.getElementById('lbl-qr').innerText = dict[currentLang].qr;
+        document.getElementById('lbl-scan').innerText = dict[currentLang].scan;
+        document.getElementById('lbl-hist').innerText = dict[currentLang].hist;
+        document.getElementById('hist-head').innerHTML = dict[currentLang].hhead;
+        document.getElementById('lang-btn').innerText = dict[currentLang].btn;
+    }
 
     // --- INITIALIZATION ---
     window.onload = async function() {
@@ -448,7 +514,6 @@
         const entryDateDisplay = data.entryDate ? new Date(data.entryDate).toLocaleDateString() : "N/A";
         document.getElementById('t-entry-date').innerText = entryDateDisplay; 
 
-        // UPDATED: Show Meter Breakdown on Mobile App
         document.getElementById('t-meter-old').innerText = data.meterOld || 0;
         document.getElementById('t-meter-new').innerText = data.meterNew || 0;
         const totalUnits = (data.meterNew || 0) - (data.meterOld || 0);
@@ -465,6 +530,18 @@
         
         document.getElementById('pay-link').href = upiLink;
         document.getElementById('qr-img').src = qrUrl;
+
+        const historyTbody = document.querySelector('#t-history-table tbody');
+        historyTbody.innerHTML = "";
+        if(data.history && data.history.length > 0) {
+            data.history.forEach(row => {
+                const date = new Date(row[0]).toLocaleDateString();
+                const color = row[2] === "Payment Received" ? "text-success" : "text-danger";
+                historyTbody.innerHTML += `<tr><td>${date}</td><td class="${color}">${row[2]}</td><td>₹${row[5]}</td><td><small>${row[7]}</small></td></tr>`;
+            });
+        } else {
+            historyTbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No transactions yet.</td></tr>`;
+        }
     }
 
     async function registerTenant() {
@@ -520,6 +597,20 @@
         fetchMeta(); 
     }
 
+    // --- NEW: FETCH PAYMENT DETAILS FOR CASH RECEIVER ---
+    async function loadPaymentDetails() {
+        const unit = document.getElementById('cash-unit').value;
+        if (!unit) {
+            document.getElementById('cash-period').innerText = "Select a unit...";
+            document.getElementById('cash-amount').value = "";
+            return;
+        }
+
+        const data = await apiCall({ action: 'GET_PAYMENT_DETAILS', unit: unit });
+        document.getElementById('cash-amount').value = data.due;
+        document.getElementById('cash-period').innerText = data.period;
+    }
+
     async function resetDatabase() {
         const confirmText = prompt("WARNING: This will delete ALL tenants, ALL transactions, and reset all units to zero. \n\nType 'RESET' to confirm:");
         if (confirmText !== "RESET") {
@@ -554,10 +645,15 @@
     async function payCash() {
         const unit = document.getElementById('cash-unit').value;
         const amount = document.getElementById('cash-amount').value;
+        const period = document.getElementById('cash-period').innerText; // NEW: Capture the cycle being paid for
+
         if(!unit || !amount) return alert("Fill all fields");
 
-        const res = await apiCall({ action: 'PAY_CASH', unit: unit, amount: amount });
+        const res = await apiCall({ action: 'PAY_CASH', unit: unit, amount: amount, period: `Paid for Cycle: ${period}` });
         alert(res);
+        document.getElementById('cash-unit').value = "";
+        document.getElementById('cash-amount').value = "";
+        document.getElementById('cash-period').innerText = "Select a unit...";
     }
 
     async function vacateUnit() {
@@ -610,7 +706,6 @@
             : 'N/A';
         document.getElementById('inv-period').innerText = periodStr;
 
-        // UPDATED: Fill in the Meter Math
         document.getElementById('inv-meter-old').innerText = data.meterOld || 0;
         document.getElementById('inv-meter-new').innerText = data.meterNew || 0;
         const totalUnits = (data.meterNew || 0) - (data.meterOld || 0);
@@ -634,4 +729,3 @@
 </script>
 </body>
 </html>
-
