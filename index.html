@@ -81,7 +81,8 @@
             <li class="nav-item"><button class="nav-link active" onclick="showTab('tab-bill')">Billing</button></li>
             <li class="nav-item"><button class="nav-link" onclick="showTab('tab-cash')">Cash Receiver</button></li>
             <li class="nav-item"><button class="nav-link" onclick="showTab('tab-reg')">Register</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-manage')">Manage Tenants</button></li> <li class="nav-item"><button class="nav-link" onclick="showTab('tab-rep')">Reports</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-manage')">Manage Tenants</button></li> 
+            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-rep')">Reports</button></li>
             <li class="nav-item"><button class="nav-link" onclick="showTab('tab-set')">Settings</button></li>
         </ul>
 
@@ -224,13 +225,25 @@
         </div>
 
         <div id="tab-set" class="dashboard-tab hidden">
-            <div class="card p-4 col-md-6">
-                <h5>Global Settings</h5>
-                <label>Electricity Rate (per unit)</label>
-                <input type="number" id="set-rate" class="form-control mb-2">
-                <label>Landlord UPI ID</label>
-                <input type="text" id="set-upi" class="form-control mb-2">
-                <button class="btn btn-warning" onclick="updateSettings()">Update Settings</button>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card p-4">
+                        <h5>Global Settings</h5>
+                        <label>Electricity Rate (per unit)</label>
+                        <input type="number" id="set-rate" class="form-control mb-2">
+                        <label>Landlord UPI ID</label>
+                        <input type="text" id="set-upi" class="form-control mb-2">
+                        <button class="btn btn-warning" onclick="updateSettings()">Update Settings</button>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card p-4 border-danger">
+                        <h5 class="text-danger">Danger Zone</h5>
+                        <p class="text-muted small">This will delete all Tenants and Transactions, and reset all Units to Vacant with 0 meters. Use this to clear test data or start a new financial year.</p>
+                        <button class="btn btn-danger" onclick="resetDatabase()">RESET DATABASE</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -316,7 +329,7 @@
 
 <script>
     // --- CONFIGURATION ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbwqYpi79s-LFhkmMhpPXONmh-WrAe5Zj001nzG7fcVPPfKWJzxZKGvrNOku9ePypHfG/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
+    const API_URL = "https://script.google.com/macros/s/AKfycbz1lfyNQMi6QycMprjLLUwXDAGWeEQfB6_wrafLr48-QMQX8KOvNGZZDuOr3p_xPrBh/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
     
     // --- GLOBAL STATE ---
     let metaData = {};
@@ -373,7 +386,7 @@
         document.getElementById('cash-unit').innerHTML = occupied;
         document.getElementById('vacate-unit').innerHTML = occupied;
         document.getElementById('reg-unit').innerHTML = vacants;
-        document.getElementById('edit-unit').innerHTML = occupied; // NEW
+        document.getElementById('edit-unit').innerHTML = occupied; 
         
         document.getElementById('set-rate').value = metaData.rate;
         document.getElementById('set-upi').value = metaData.upi;
@@ -455,7 +468,7 @@
         location.reload();
     }
 
-    // --- NEW EDIT TENANT FUNCTIONS ---
+    // --- EDIT TENANT FUNCTIONS ---
     async function loadTenantData() {
         const unit = document.getElementById('edit-unit').value;
         if (!unit) return alert("Select a Unit");
@@ -486,9 +499,21 @@
 
         const res = await apiCall(data);
         alert(res);
-        fetchMeta(); // Refresh data to update dropdown names if changed
+        fetchMeta(); 
     }
-    // ----------------------------------
+
+    // --- NEW: RESET DATABASE FUNCTION ---
+    async function resetDatabase() {
+        const confirmText = prompt("WARNING: This will delete ALL tenants, ALL transactions, and reset all units to zero. \n\nType 'RESET' to confirm:");
+        if (confirmText !== "RESET") {
+            alert("Reset Cancelled.");
+            return;
+        }
+
+        const res = await apiCall({ action: 'RESET_DATABASE' });
+        alert(res);
+        location.reload();
+    }
 
     async function generateBill() {
         const unit = document.getElementById('bill-unit').value;
