@@ -255,6 +255,12 @@
         <div class="card p-4 mt-3 border-primary" style="border-width: 2px;">
             <h4 class="text-primary">Current Bill Status</h4>
             <hr>
+            
+            <div class="alert alert-secondary py-2 mb-3" style="font-size: 0.85rem;">
+                <strong>Meter Reading:</strong> <span id="t-meter-old">0</span> (Old) to <span id="t-meter-new">0</span> (New) <br>
+                <strong>Calculation:</strong> <span id="t-units">0</span> units @ ₹<span id="t-rate">0</span>/unit
+            </div>
+
             <div class="row text-center">
                 <div class="col-3">
                     <small class="text-muted">Base Rent</small>
@@ -311,8 +317,14 @@
         <thead><tr><th>Description</th><th class="text-end">Amount (₹)</th></tr></thead>
         <tbody>
             <tr><td>Monthly Rent</td><td class="text-end" id="inv-rent"></td></tr>
-            <tr><td>Electricity Charges</td><td class="text-end" id="inv-elec"></td></tr>
-            <tr><td>Previous Arrears</td><td class="text-end" id="inv-arr"></td></tr>
+            
+            <tr style="background-color: #f8f9fa;"><td colspan="2" class="text-center text-muted small py-1">--- ELECTRICITY CALCULATION ---</td></tr>
+            <tr><td>Previous Meter Reading</td><td class="text-end" id="inv-meter-old"></td></tr>
+            <tr><td>Current Meter Reading</td><td class="text-end" id="inv-meter-new"></td></tr>
+            <tr><td><strong>Electricity Charges</strong> (<span id="inv-units"></span> units @ ₹<span id="inv-rate"></span>)</td><td class="text-end" id="inv-elec"></td></tr>
+            <tr style="background-color: #f8f9fa;"><td colspan="2" class="py-1"></td></tr>
+
+            <tr><td>Previous Arrears (Unpaid Dues)</td><td class="text-end" id="inv-arr"></td></tr>
             <tr class="table-dark"><td><strong>TOTAL DUE</strong></td><td class="text-end"><strong id="inv-total"></strong></td></tr>
         </tbody>
     </table>
@@ -329,7 +341,7 @@
 
 <script>
     // --- CONFIGURATION ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbx0c_ZmX7ox_pkNkjHg7OhRS5X7WPzAgUFGiFJtw8wppJSk0LQw95sCzNcydadihwhI/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
+    const API_URL = "YOUR_WEB_APP_URL_HERE"; // <--- PUT YOUR DEPLOYMENT URL HERE
     
     // --- GLOBAL STATE ---
     let metaData = {};
@@ -436,6 +448,13 @@
         const entryDateDisplay = data.entryDate ? new Date(data.entryDate).toLocaleDateString() : "N/A";
         document.getElementById('t-entry-date').innerText = entryDateDisplay; 
 
+        // UPDATED: Show Meter Breakdown on Mobile App
+        document.getElementById('t-meter-old').innerText = data.meterOld || 0;
+        document.getElementById('t-meter-new').innerText = data.meterNew || 0;
+        const totalUnits = (data.meterNew || 0) - (data.meterOld || 0);
+        document.getElementById('t-units').innerText = totalUnits;
+        document.getElementById('t-rate').innerText = data.rate || 0;
+
         document.getElementById('t-rent').innerText = "₹" + data.rent;
         document.getElementById('t-elec').innerText = "₹" + data.elec;
         document.getElementById('t-arr').innerText = "₹" + data.arrears;
@@ -468,7 +487,6 @@
         location.reload();
     }
 
-    // --- EDIT TENANT FUNCTIONS ---
     async function loadTenantData() {
         const unit = document.getElementById('edit-unit').value;
         if (!unit) return alert("Select a Unit");
@@ -502,7 +520,6 @@
         fetchMeta(); 
     }
 
-    // --- RESET DATABASE FUNCTION ---
     async function resetDatabase() {
         const confirmText = prompt("WARNING: This will delete ALL tenants, ALL transactions, and reset all units to zero. \n\nType 'RESET' to confirm:");
         if (confirmText !== "RESET") {
@@ -592,6 +609,13 @@
             ? `${new Date(data.lastStart).toLocaleDateString()} to ${new Date(data.lastEnd).toLocaleDateString()}` 
             : 'N/A';
         document.getElementById('inv-period').innerText = periodStr;
+
+        // UPDATED: Fill in the Meter Math
+        document.getElementById('inv-meter-old').innerText = data.meterOld || 0;
+        document.getElementById('inv-meter-new').innerText = data.meterNew || 0;
+        const totalUnits = (data.meterNew || 0) - (data.meterOld || 0);
+        document.getElementById('inv-units').innerText = totalUnits;
+        document.getElementById('inv-rate').innerText = data.rate || 0;
 
         document.getElementById('inv-rent').innerText = data.rent;
         document.getElementById('inv-elec').innerText = data.elec;
