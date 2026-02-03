@@ -15,8 +15,8 @@
         
         /* Print Styles for Invoice */
         @media print {
-            body * { visibility: hidden; } /* Hide the app interface */
-            #invoice-area, #invoice-area * { visibility: visible; } /* Show ONLY the invoice */
+            body * { visibility: hidden; } 
+            #invoice-area, #invoice-area * { visibility: visible; } 
             #invoice-area { position: absolute; left: 0; top: 0; width: 100%; }
         }
     </style>
@@ -77,11 +77,11 @@
     <div id="admin-dashboard" class="hidden">
         <h3 class="mb-3">Landlord Dashboard <small class="text-muted fs-6">Mamta Mullick</small></h3>
         
-        <ul class="nav nav-pills mb-3">
-            <li class="nav-item"><button class="nav-link active" onclick="showTab('tab-bill')">Billing & Invoice</button></li>
+        <ul class="nav nav-pills mb-3" style="font-size: 0.9rem;">
+            <li class="nav-item"><button class="nav-link active" onclick="showTab('tab-bill')">Billing</button></li>
             <li class="nav-item"><button class="nav-link" onclick="showTab('tab-cash')">Cash Receiver</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-reg')">Register Tenant</button></li>
-            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-rep')">Reports</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-reg')">Register</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('tab-manage')">Manage Tenants</button></li> <li class="nav-item"><button class="nav-link" onclick="showTab('tab-rep')">Reports</button></li>
             <li class="nav-item"><button class="nav-link" onclick="showTab('tab-set')">Settings</button></li>
         </ul>
 
@@ -163,6 +163,50 @@
             </div>
         </div>
 
+        <div id="tab-manage" class="dashboard-tab hidden">
+            <div class="card p-4 col-md-8">
+                <h5>Edit Existing Tenant</h5>
+                <div class="d-flex gap-2 mb-4">
+                    <select id="edit-unit" class="form-select"></select>
+                    <button class="btn btn-info" onclick="loadTenantData()">Load Details</button>
+                </div>
+
+                <div id="edit-form" class="hidden">
+                    <hr>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.8rem;">Name</label>
+                            <input type="text" id="edit-name" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.8rem;">Phone</label>
+                            <input type="text" id="edit-phone" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.8rem;">Entry Date</label>
+                            <input type="date" id="edit-date" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.8rem;">Base Rent</label>
+                            <input type="number" id="edit-rent" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.8rem;">Rent Type</label>
+                            <select id="edit-type" class="form-select">
+                                <option value="Advance">Advance Rent</option>
+                                <option value="Postpaid">Postpaid</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.8rem;">Security Deposit</label>
+                            <input type="number" id="edit-sec" class="form-control">
+                        </div>
+                    </div>
+                    <button class="btn btn-warning mt-3 w-100" onclick="saveTenantData()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
         <div id="tab-rep" class="dashboard-tab hidden">
             <div class="card p-3">
                 <div class="d-flex gap-2">
@@ -193,6 +237,7 @@
 
     <div id="tenant-dashboard" class="hidden">
         <h2 id="t-welcome">Welcome</h2>
+        <p class="text-muted mb-0"><strong>Move-in Date:</strong> <span id="t-entry-date">N/A</span></p>
         
         <div class="card p-4 mt-3 border-primary" style="border-width: 2px;">
             <h4 class="text-primary">Current Bill Status</h4>
@@ -242,6 +287,7 @@
         <div class="col-6">
             <h5>Bill To:</h5>
             <p>Name: <span id="inv-name"></span><br>Unit: <span id="inv-unit"></span></p>
+            <p class="mb-0"><small>Move-in Date: <span id="inv-entry-date"></span></small></p>
         </div>
         <div class="col-6 text-end">
             <h5>Date of Issue: <span id="inv-date"></span></h5>
@@ -270,7 +316,7 @@
 
 <script>
     // --- CONFIGURATION ---
-    const API_URL = "https://script.google.com/macros/s/AKfycbxlGasA7MRIeUyvHIix84R6ge1ieAO2oR-Wsamu96a-7psyKqB_14vWA764F7b_nA9Y/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
+    const API_URL = "https://script.google.com/macros/s/AKfycbwqYpi79s-LFhkmMhpPXONmh-WrAe5Zj001nzG7fcVPPfKWJzxZKGvrNOku9ePypHfG/exec"; // <--- PUT YOUR DEPLOYMENT URL HERE
     
     // --- GLOBAL STATE ---
     let metaData = {};
@@ -327,6 +373,7 @@
         document.getElementById('cash-unit').innerHTML = occupied;
         document.getElementById('vacate-unit').innerHTML = occupied;
         document.getElementById('reg-unit').innerHTML = vacants;
+        document.getElementById('edit-unit').innerHTML = occupied; // NEW
         
         document.getElementById('set-rate').value = metaData.rate;
         document.getElementById('set-upi').value = metaData.upi;
@@ -373,6 +420,9 @@
         document.getElementById('tenant-dashboard').classList.remove('hidden');
         
         document.getElementById('t-welcome').innerText = `Welcome, ${data.name}`;
+        const entryDateDisplay = data.entryDate ? new Date(data.entryDate).toLocaleDateString() : "N/A";
+        document.getElementById('t-entry-date').innerText = entryDateDisplay; 
+
         document.getElementById('t-rent').innerText = "₹" + data.rent;
         document.getElementById('t-elec').innerText = "₹" + data.elec;
         document.getElementById('t-arr').innerText = "₹" + data.arrears;
@@ -404,6 +454,41 @@
         alert(`${res.msg}\nAssigned PIN: ${res.pin}`);
         location.reload();
     }
+
+    // --- NEW EDIT TENANT FUNCTIONS ---
+    async function loadTenantData() {
+        const unit = document.getElementById('edit-unit').value;
+        if (!unit) return alert("Select a Unit");
+
+        const data = await apiCall({ action: 'GET_TENANT_ADMIN', unit: unit });
+        
+        document.getElementById('edit-name').value = data.name;
+        document.getElementById('edit-phone').value = data.phone;
+        document.getElementById('edit-date').value = data.entryDate;
+        document.getElementById('edit-rent').value = data.rent;
+        document.getElementById('edit-type').value = data.type;
+        document.getElementById('edit-sec').value = data.security;
+
+        document.getElementById('edit-form').classList.remove('hidden');
+    }
+
+    async function saveTenantData() {
+        const data = {
+            action: 'EDIT_TENANT',
+            unit: document.getElementById('edit-unit').value,
+            name: document.getElementById('edit-name').value,
+            phone: document.getElementById('edit-phone').value,
+            entryDate: document.getElementById('edit-date').value,
+            rent: document.getElementById('edit-rent').value,
+            type: document.getElementById('edit-type').value,
+            security: document.getElementById('edit-sec').value
+        };
+
+        const res = await apiCall(data);
+        alert(res);
+        fetchMeta(); // Refresh data to update dropdown names if changed
+    }
+    // ----------------------------------
 
     async function generateBill() {
         const unit = document.getElementById('bill-unit').value;
@@ -472,6 +557,10 @@
         
         document.getElementById('inv-name').innerText = data.name;
         document.getElementById('inv-unit').innerText = unit;
+        
+        const entryDateDisplay = data.entryDate ? new Date(data.entryDate).toLocaleDateString() : "N/A";
+        document.getElementById('inv-entry-date').innerText = entryDateDisplay;
+
         document.getElementById('inv-date').innerText = new Date().toLocaleDateString();
         
         const periodStr = data.lastStart && data.lastEnd 
